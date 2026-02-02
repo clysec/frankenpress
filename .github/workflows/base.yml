@@ -1,0 +1,65 @@
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    
+    strategy:
+      fail-fast: true
+      matrix:
+        # php_version: [ "8.3", "8.4", "8.5"]
+        php_version: [ "8.4" ]
+        # variants: [ "", "devcontainer"]
+        variant: [ "" ]
+        alpine: [ "3.23" ]
+    
+    steps:
+      - name: Checkout repository content
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: clysec
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+      - name: Get PHP commit version
+        id: php_commit_sha
+        run: |
+          cd base/php
+          echo "PHP_COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Prepare PHP Dockerfiles
+        run: |
+          cd base
+          python3 generate.py ${{ matrix.variant }}
+
+      - uses: depot/setup-action@v1
+      - uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./base/php/${{ matrix.php_version }}/alpine${{ matrix.alpine }}/zts
+          file: ./base/php/${{ matrix.php_version }}/alpine${{ matrix.alpine }}/zts/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            docker.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
