@@ -20,7 +20,7 @@ for folder in phpver:
         data = data.replace('sqlite-dev', 'sqlite-dev jpeg-dev freetype-dev libwebp-dev icu-dev libpng-dev libzip-dev mariadb-dev')
         data = data.replace('--disable-zend-signals', '--disable-zend-signals --enable-zend-max-execution-timers --with-pdo-mysql --with-mysqli --enable-bcmath --with-freetype --with-jpeg --with-webp --with-zip --enable-intl')
 
-        if "devcontaienr" in args:
+        if "-devcontainer" in args:
             data = data.replace(f'FROM alpine:{alp}', f'FROM mcr.microsoft.com/devcontainers/base:alpine-{alp}')
         
         with open(os.path.join(alp, 'zts', 'Dockerfile'), 'w') as f:

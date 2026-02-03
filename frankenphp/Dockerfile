@@ -4,7 +4,8 @@
 #checkov:skip=CKV_DOCKER_7
 ARG PHP_VERSION=8.4
 ARG ALPINE_VERSION=3.23
-FROM ghcr.io/clysec/php-zts:${PHP_VERSION}-alpine${ALPINE_VERSION} AS common
+ARG VARIANT=
+FROM ghcr.io/clysec/php-zts:${PHP_VERSION}-alpine${ALPINE_VERSION}${VARIANT} AS common
 
 ARG TARGETARCH
 WORKDIR /app
