@@ -55,8 +55,11 @@ jobs:
           cd base
           python3 generate.py ${{ matrix.variant }}
 
-      - uses: depot/setup-action@v1
-      - uses: depot/build-push-action@v1
+      - name: Prepare Depot
+        uses: depot/setup-action@v1
+
+      - name: Build and Push PHP ZTS Docker Image
+        uses: depot/build-push-action@v1
         with:
           project: 35gblm93v9
           context: ./base/php/${{ matrix.php_version }}/alpine${{ matrix.alpine }}/zts
@@ -69,7 +72,8 @@ jobs:
             docker.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
 
-      - uses: depot/build-push-action@v1
+      - name: Build and Push FrankenPHP Docker Image
+        uses: depot/build-push-action@v1
         with:
           project: 35gblm93v9
           context: ./frankenphp
@@ -86,3 +90,22 @@ jobs:
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+        
+      - name: Build and Push Frankenpress Docker Image
+        uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./frankenpress
+          file: ./frankenpress/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            ALPINE_VERSION=${{ matrix.alpine }}
+            VARIANT=${{ matrix.variant }}
+            FRANKENPHP_VERSION=${{ matrix.frankenphp }}
+          tags: |
+            ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenpress:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            docker.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenpress:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
