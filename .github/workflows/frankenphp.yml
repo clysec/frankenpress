@@ -61,6 +61,10 @@ jobs:
           file: ./base/php/${{ matrix.php_version }}/alpine${{ matrix.alpine }}/zts/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            ALPINE_VERSION=${{ matrix.alpine }}
+            VARIANT=${{ matrix.variant }}
           tags: |
             ghcr.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
