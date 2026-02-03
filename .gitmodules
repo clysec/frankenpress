@@ -1,3 +1,6 @@
 [submodule "base/php"]
 	path = base/php
 	url = https://github.com/docker-library/php.git
+[submodule "frankenphp/frankenphp"]
+	path = frankenphp/frankenphp
+	url = https://github.com/php/frankenphp.git
