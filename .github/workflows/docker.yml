@@ -17,8 +17,9 @@ jobs:
           - "8.4"
           # - "8.5"
         variant:
-          - ""
-          - "-devcontainer"
+          - "-hardened"
+          # - ""
+          # - "-devcontainer"
         alpine:
           - "3.23"
         frankenphp:

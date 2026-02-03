@@ -22,6 +22,8 @@ for folder in phpver:
 
         if "-devcontainer" in args:
             data = data.replace(f'FROM alpine:{alp}', f'FROM mcr.microsoft.com/devcontainers/base:alpine-{alp}')
+        if "-hardened" in args:
+            data = data.replace('FROM alpine:', 'FROM dhi.io/alpine-base:')
         
         with open(os.path.join(alp, 'zts', 'Dockerfile'), 'w') as f:
             f.write(data)
