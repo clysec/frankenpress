@@ -21,6 +21,8 @@ jobs:
           # - "devcontainer"
         alpine:
           - "3.23"
+        frankenphp:
+          - V1.11.1
     
     steps:
       - name: Checkout repository content
@@ -66,3 +68,21 @@ jobs:
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+
+      - uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./frankenphp
+          file: ./frankenphp/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            ALPINE_VERSION=${{ matrix.alpine }}
+            VARIANT=${{ matrix.variant }}
+            FRANKENPHP_VERSION=${{ matrix.frankenphp }}
+          tags: |
+            ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            docker.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ (matrix.variant != '' && '-') || '' }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.variant != '' && matrix.php_version == '8.4' && '-') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
