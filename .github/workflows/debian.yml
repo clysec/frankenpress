@@ -1,0 +1,111 @@
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    
+    strategy:
+      fail-fast: true
+      matrix:
+        php_version:
+          - "8.4"
+          - "8.5"
+        variant:
+          - ""
+          - "-devcontainer"
+        debian:
+          - "trixie"
+        frankenphp:
+          - V1.11.1
+    
+    steps:
+      - name: Checkout repository content
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: clysec
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+  
+      - name: Get PHP commit version
+        id: php_commit_sha
+        run: |
+          cd base/php
+          echo "PHP_COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Prepare PHP Dockerfiles
+        run: |
+          cd base
+          python3 generate.py ${{ matrix.variant }}
+
+      - name: Prepare Depot
+        uses: depot/setup-action@v1
+
+      - name: Build and Push Debian PHP ZTS Docker Image
+        uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./base/php/${{ matrix.php_version }}/${{ matrix.debian }}/zts
+          file: ./base/php/${{ matrix.php_version }}/${{ matrix.debian }}/zts/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/clysec/php-zts:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/php-zts:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+            docker.io/clysec/php-zts:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/php-zts:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+
+      - name: Build and Push Debian FrankenPHP Docker Image
+        uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./frankenphp
+          file: ./frankenphp/debian.Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            DEBIAN_VERSION=${{ matrix.debian }}
+            VARIANT=${{ matrix.variant }}
+            FRANKENPHP_VERSION=${{ matrix.frankenphp }}
+          tags: |
+            ghcr.io/clysec/frankenphp:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+            docker.io/clysec/frankenphp:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+        
+      - name: Build and Push Debian Frankenpress Docker Image
+        uses: depot/build-push-action@v1
+        with:
+          project: 35gblm93v9
+          context: ./frankenpress
+          file: ./frankenpress/debian.Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            DEBIAN_VERSION=${{ matrix.debian }}
+            VARIANT=${{ matrix.variant }}
+            FRANKENPHP_VERSION=${{ matrix.frankenphp }}
+          tags: |
+            ghcr.io/clysec/frankenpress:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+            docker.io/clysec/frankenpress:${{ matrix.php_version }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
