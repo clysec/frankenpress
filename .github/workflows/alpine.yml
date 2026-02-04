@@ -70,9 +70,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
 
       - name: Build and Push FrankenPHP Docker Image
         uses: depot/build-push-action@v1
@@ -89,9 +89,9 @@ jobs:
             FRANKENPHP_VERSION=${{ matrix.frankenphp }}
           tags: |
             ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
         
       - name: Build and Push Frankenpress Docker Image
         uses: depot/build-push-action@v1
@@ -108,6 +108,6 @@ jobs:
             FRANKENPHP_VERSION=${{ matrix.frankenphp }}
           tags: |
             ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
+            ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
