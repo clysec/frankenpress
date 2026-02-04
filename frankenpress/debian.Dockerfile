@@ -38,9 +38,10 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         frank \
     && apt-get update \
     && apt-get -y install --no-install-recommends \
-        bash \
         git \
         zip \
+        unzip \
+        7zip \
         mariadb-client \
         nano \
     && apt-get clean \
@@ -57,21 +58,20 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         /usr/local/bin/docker*entrypoint* \
         /etc/wpcli \
         /etc/composer \
-    && rm -rf /tmp/* /var/lib/apt/lists/* /usr/share/doc/*
-        
+    && rm -rf /tmp/* /var/lib/apt/lists/* /usr/share/doc/*   
 
 WORKDIR /app
 
 USER frank
 
+COPY Caddyfile /etc/frankenphp/Caddyfile
+COPY --from=gobuild --chown=frank:frank /init-go/init-go /init-go/init-go
+COPY --chmod=755 init-go/config-sample.json /init-go/config.json
+
 RUN rm -rf /app/* \
     && composer config --global audit.block-insecure false \    
     && composer create-project roots/bedrock --no-interaction --no-dev . \
     && cp .env.example .env
-
-COPY Caddyfile /etc/frankenphp/Caddyfile
-COPY --from=gobuild --chown=frank:frank /init-go/init-go /init-go/init-go
-COPY --chmod=755 init-go/config-sample.json /init-go/config.json
 
 ENV FP_GLOBAL_OPTIONS="" \
     FP_FRANKENPHP_OPTIONS="" \
