@@ -5,7 +5,7 @@
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM ghcr.io/clysec/php-zts:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
+FROM ghcr.io/clysec/php-zts:${PHP_VERSION}${VARIANT} AS common
 
 ARG TARGETARCH
 WORKDIR /app

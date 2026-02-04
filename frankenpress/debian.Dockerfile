@@ -12,7 +12,7 @@ RUN go build -o /init-go/init-go main.go
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM ghcr.io/clysec/frankenphp:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
+FROM ghcr.io/clysec/frankenphp:${PHP_VERSION}${VARIANT} AS common
 
 COPY php.ini $PHP_INI_DIR/conf.d/wp.ini
 COPY opcache.ini $PHP_INI_DIR/conf.d/opcache-recommended.ini
