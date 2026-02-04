@@ -36,13 +36,9 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         --shell /bin/false \
         --uid 101 \
         frank \
-    && mkdir -p /etc/apt/keyrings \
-    && curl https://pkg.cloudyne.io/debian/repository.key -o /etc/apt/keyrings/cydeb.asc \
-    && echo "deb [signed-by=/etc/apt/keyrings/cydeb.asc] https://pkg.cloudyne.io/debian all main" | tee -a /etc/apt/sources.list.d/cydeb.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends \
         bash \
-        vvv \
         git \
         zip \
         mariadb-client \
