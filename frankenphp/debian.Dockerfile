@@ -11,6 +11,7 @@ ARG TARGETARCH
 WORKDIR /app
 
 RUN apt-get update \
+	&& docker-php-ext-install opcache \
 	&& apt-get -y install --no-install-recommends \
 		ca-certificates \
 		mailcap \
@@ -26,7 +27,7 @@ RUN set -eux; \
 		/etc/caddy \
 		/etc/frankenphp; \
 	sed -i 's/php/frankenphp run/g' /usr/local/bin/docker-php-entrypoint; \
-	echo '<?php phpinfo();' > /app/public/index.php
+	echo '<?php phpinfo();' > /app/public/index.php 
 
 COPY --link ./frankenphp/caddy/frankenphp/Caddyfile /etc/caddy/Caddyfile
 
