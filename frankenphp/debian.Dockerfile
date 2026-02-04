@@ -11,7 +11,6 @@ ARG TARGETARCH
 WORKDIR /app
 
 RUN apt-get update \
-	&& docker-php-ext-install opcache \
 	&& apt-get -y install --no-install-recommends \
 		ca-certificates \
 		mailcap \
