@@ -9,6 +9,12 @@
 	{$FP_GLOBAL_OPTIONS}
 
 	frankenphp {
+		php_ini {
+			disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
+			memory_limit 1G
+			max_execution_time 300
+			max_input_time 300
+		}
 		{$FP_FRANKENPHP_OPTIONS}
 	}
 }
