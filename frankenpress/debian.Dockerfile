@@ -25,6 +25,7 @@ ENV WP_CLI_CACHE_DIR="/tmp/wpcli/cache"             \
     COMPOSER_HOME="/etc/composer"
 
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
+    && install-php-extensions mysqli zip gd \
     && mkdir -p /app \
     && groupadd --system --gid 101 frank \
     && useradd \
