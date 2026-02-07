@@ -1,36 +1,65 @@
-
 {
 	skip_install_trust
 
-    auto_https off {
-        disable_redirects
-    }
-
-	{$FP_GLOBAL_OPTIONS}
-
-	frankenphp {
-		php_ini {
-			disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
-			memory_limit 1G
-			max_execution_time 300
-			max_input_time 300
-		}
-		{$FP_FRANKENPHP_OPTIONS}
+	auto_https off {
+		disable_redirects
 	}
+
+      frankenphp {
+        php_ini {
+                disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
+                memory_limit 1G
+                max_execution_time 600
+                max_input_time 600
+        }
+      }
+
+    order respond before reverse_proxy
+    order rewrite before respond
+    order route before rewrite
 }
 
-{$FP_EXTRA_CONFIG}
-
 {$FP_SERVER_NAME} {
-	encode zstd br gzip
-    log {
+      encode zstd br gzip
+      log {
         level WARN
-    }
+      }
 
-	{$FP_SERVER_OPTIONS}
+      @healthcheck {
+        path /unit-ping /fpm-ping
+      }
+      respond @healthcheck 200 "OK"
 
-    root /app/web
-	php_server
+      @wpadmin {
+        path_regexp wpadmin ^/wp-admin(.*)$
+      }
+      redir @wpadmin /wp/wp-admin{re.wpadmin.1} permanent
+
+      @wplogin {
+        path /wp-login.php*
+      }
+      redir @wplogin /wp/wp-login.php permanent
+
+      @uploadsphp {
+        path /app/uploads/*.php
+      }
+      respond @uploadsphp 401 "Unauthorized"
+
+      @images {
+        path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
+      }
+      handle @images {
+        root * /app/web
+        try_files {path}.webp {re.images.1}.webp {path}
+        file_server
+      }
+
+      root /app/web
+
+      php_server {
+          root /app/web
+		  ${FP_PHP_SERVER_OPTIONS}
+      }
 }
 
 # As an alternative to editing the above site block, you can add your own site
