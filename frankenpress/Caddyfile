@@ -1,69 +1,75 @@
-{
-	skip_install_trust
+    {
+        skip_install_trust
 
-	auto_https off {
-		disable_redirects
-	}
-
-      frankenphp {
-        php_ini {
-                disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
-                memory_limit 1G
-                max_execution_time 600
-                max_input_time 600
+        auto_https off {
+          disable_redirects
         }
-      }
 
-    order respond before reverse_proxy
-    order rewrite before respond
-    order route before rewrite
-}
+        frankenphp {
+          php_ini {
+                  disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
+                  memory_limit 1G
+                  max_execution_time 600
+                  max_input_time 600
+          }
+        }
 
-{$FP_SERVER_NAME} {
-      encode zstd br gzip
-      log {
-        level WARN
-      }
+        http_port {$FP_HTTP_PORT:8080}
 
-      @healthcheck {
-        path /unit-ping /fpm-ping
-      }
-      respond @healthcheck 200 "OK"
+        order respond before reverse_proxy
+        order rewrite before respond
+        order route before rewrite
+        servers {
+          trusted_proxies static private_ranges
+        }
+    }
 
-      @wpadmin {
-        path_regexp wpadmin ^/wp-admin(.*)$
-      }
-      redir @wpadmin /wp/wp-admin{re.wpadmin.1} permanent
+    {$FP_SERVER_NAME}, http:// {
+          encode zstd br gzip
+          log {
+            level WARN
+          }
 
-      @wplogin {
-        path /wp-login.php*
-      }
-      redir @wplogin /wp/wp-login.php permanent
+          @healthcheck {
+            path /unit-ping /fpm-ping
+          }
+          respond @healthcheck 200 "OK"
 
-      @uploadsphp {
-        path /app/uploads/*.php
-      }
-      respond @uploadsphp 401 "Unauthorized"
+          @wpadmin {
+            path_regexp wpadmin ^/wp-admin(.*)$
+          }
+          redir @wpadmin /wp/wp-admin{re.wpadmin.1} permanent
 
-      @images {
-        path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
-      }
-      handle @images {
-        root * /app/web
-        try_files {path}.webp {re.images.1}.webp {path}
-        file_server
-      }
+          @wplogin {
+            path /wp-login.php*
+          }
+          redir @wplogin /wp/wp-login.php permanent
 
-      root /app/web
+          @uploadsphp {
+            path /app/uploads/*.php
+          }
+          respond @uploadsphp 401 "Unauthorized"
 
-      php_server {
+          @images {
+            path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
+          }
+          handle @images {
+            root * /app/web
+            try_files {path}.webp {re.images.1}.webp {path}
+            file_server
+          }
+
           root /app/web
-		  ${FP_PHP_SERVER_OPTIONS}
-      }
-}
 
-# As an alternative to editing the above site block, you can add your own site
-# block files in the Caddyfile.d directory, and they will be included as long
-# as they use the .caddyfile extension.
+          php_server {
+              root /app/web
 
-import Caddyfile.d/*.caddyfile
+              {$FP_PHP_SERVER_OPTIONS}
+          }
+    }
+
+    # As an alternative to editing the above site block, you can add your own site
+    # block files in the Caddyfile.d directory, and they will be included as long
+    # as they use the .caddyfile extension.
+
+    import Caddyfile.d/*.caddyfile

@@ -63,7 +63,9 @@ USER frank
 
 RUN rm -rf /app/* \
     && composer create-project roots/bedrock --no-interaction --no-dev . \
-    && cp .env.example .env
+    && cp .env.example .env \
+    && composer config --global audit.block-insecure false \
+    && composer config --global policy.advisories.block false
 
 COPY Caddyfile /etc/frankenphp/Caddyfile
 COPY --from=gobuild --chown=frank:frank /init-go/init-go /init-go/init-go
@@ -75,6 +77,8 @@ ENV FP_GLOBAL_OPTIONS="" \
     FP_SERVER_NAME="http://localhost:8080" \
     FP_LOG_LEVEL="WARN" \
     FP_SERVER_OPTIONS="" \
-    FP_AUTO_HTTPS="off"
+    FP_AUTO_HTTPS="off" \
+    FP_SERVER_OPTIONS=" " \
+    FP_PHP_SERVER_OPTIONS=" "
 
 CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
