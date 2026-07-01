@@ -22,7 +22,7 @@ jobs:
           # Disabled for now
           # - "-hardened"
         alpine:
-          - "3.23"
+          - "3.24"
         frankenphp:
           - V1.12.4
     
