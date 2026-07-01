@@ -61,7 +61,7 @@ ARG FRANKENPHP_VERSION='dev'
 ARG NO_COMPRESS=''
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-COPY --from=golang:1.25-alpine /usr/local/go /usr/local/go
+COPY --from=golang:1-alpine /usr/local/go /usr/local/go
 
 ENV PATH=/usr/local/go/bin:$PATH
 ENV GOTOOLCHAIN=local
