@@ -51,7 +51,7 @@ jobs:
       - name: Login to CYCR
         uses: docker/login-action@v2
         with:
-          registry: cycr.io
+          registry: oci.fi
           username: ${{ secrets.CYCR_ACCOUNT }}
           password: ${{ secrets.CYCR_SECRET }}
   
@@ -82,8 +82,8 @@ jobs:
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
-            cycr.io/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'cycr.io/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
+            oci.fi/clysec/php-zts:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'oci.fi/clysec/php-zts:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
 
       - name: Build and push FrankenPHP
         uses: docker/build-push-action@v7
@@ -103,8 +103,8 @@ jobs:
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
-            cycr.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'cycr.io/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
+            oci.fi/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'oci.fi/clysec/frankenphp:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
         
       - name: Build and push Frankenpress
         uses: docker/build-push-action@v7
@@ -124,5 +124,5 @@ jobs:
             ${{ (matrix.php_version == '8.4' && 'ghcr.io/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
             docker.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.4' && 'docker.io/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}  
-            cycr.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.4' && 'cycr.io/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
+            oci.fi/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}
+            ${{ (matrix.php_version == '8.4' && 'oci.fi/clysec/frankenpress:latest-alpine') || '' }}${{ (matrix.php_version == '8.4' && matrix.variant) || '' }}
