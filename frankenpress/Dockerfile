@@ -63,6 +63,7 @@ USER frank
 
 RUN rm -rf /app/* \
     && composer create-project roots/bedrock --no-interaction --no-dev . \
+    && composer require -W "roots/wordpress:^7.0.0" \
     && cp .env.example .env \
     && composer config --global audit.block-insecure false \
     && composer config --global policy.advisories.block false

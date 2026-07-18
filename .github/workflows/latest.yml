@@ -1,0 +1,36 @@
+on:
+    schedule:
+        - cron: '0 0 * * *'
+          timezone: Europe/Berlin
+
+    workflow_call:
+    workflow_dispatch:
+
+
+env:
+    LATEST_PHP: "8.5"
+    LATEST_ALPINE: "3.24"
+    MIN_WORDPRESS_VERSION: "7.0.2"
+
+jobs:
+    build-latest-alpine:
+      permissions:
+        contents: read
+        packages: write
+      runs-on: ubuntu-latest
+      
+      steps:
+      
+      - name: Build and push Frankenpress (latest)
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          context: ./frankenpress
+          file: ./frankenpress/latest.Dockerfile
+          args: |
+            IMAGE_TAG=${{ env.LATEST_PHP }}-alpine${{ env.LATEST_ALPINE }}
+            MIN_WORDPRESS_VERSION=${{ env.MIN_WORDPRESS_VERSION }}
+          tags: |
+            ghcr.io/clysec/frankenpress:latest
+            docker.io/clysec/frankenpress:latest
+            oci.fi/clysec/frankenpress:latest
