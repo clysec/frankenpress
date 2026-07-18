@@ -38,9 +38,7 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         --shell /bin/false \
         --uid 101 \
         frank \
-    && cd /etc/apk/keys && curl -JO https://git.cloudyne.io/api/packages/linux/alpine/key \
-    && echo 'https://git.cloudyne.io/api/packages/linux/alpine/all/repository' >> /etc/apk/repositories \
-    && apk add --no-cache bash vvv git git zip unzip mariadb-client mariadb-connector-c nano \
+    && apk add --no-cache bash git zip unzip mariadb-client mariadb-connector-c nano \
     && mkdir -p /etc/composer /etc/wpcli/packages \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  \
