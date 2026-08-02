@@ -1,0 +1,26 @@
+services:
+  php-zts:
+    image: oci.fi/php-zts:8.5-trixie
+    build:
+      context: ./base/php/8.5/trixie/zts
+
+  frankenphp:
+    image: oci.fi/frankenphp:8.5-trixie
+    build:
+      context: ./frankenphp
+      dockerfile: debian.Dockerfile
+      args:
+        PHP_VERSION: "8.5"
+        DEBIAN_VERSION: trixie
+        VARIANT: ""
+        FRANKENPHP_VERSION: v1.12.4
+  
+  frankenpress:
+    image: oci.fi/frankenpress:8.5-trixie
+    build:
+      context: ./frankenpress
+      dockerfile: debian.Dockerfile
+      args:
+        PHP_VERSION: "8.5"
+        DEBIAN_VERSION: trixie
+        VARIANT: ""

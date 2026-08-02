@@ -1,7 +1,7 @@
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM golang:1-alpine AS gobuild
+FROM golang:1-trixie AS gobuild
 
 WORKDIR /init-go
 
@@ -12,7 +12,7 @@ RUN go build -o /init-go/init-go main.go
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM ghcr.io/clysec/frankenphp:${PHP_VERSION}${VARIANT} AS common
+FROM oci.fi/frankenphp:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
 
 COPY php.ini $PHP_INI_DIR/conf.d/wp.ini
 COPY opcache.ini $PHP_INI_DIR/conf.d/opcache-recommended.ini
@@ -45,6 +45,7 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         7zip \
         mariadb-client \
         nano \
+        libmagickwand-dev \
     && apt-get clean \
     && mkdir -p /etc/composer /etc/wpcli/packages \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \

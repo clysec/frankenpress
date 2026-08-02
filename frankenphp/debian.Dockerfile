@@ -5,7 +5,7 @@
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM ghcr.io/clysec/php-zts:${PHP_VERSION}${VARIANT} AS common
+FROM oci.fi/php-zts:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
 
 ARG TARGETARCH
 WORKDIR /app
@@ -16,7 +16,7 @@ RUN apt-get update \
 		mailcap \
 		libcap2-bin \
 	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+	&& rm -rf /var/lib/apt/lists/* \
 
 RUN set -eux; \
 	mkdir -p \
@@ -81,6 +81,13 @@ RUN apt-get update && \
 	libssl-dev \
 	libxml2-dev \
 	zlib1g-dev \
+	libjpeg-dev \
+	libfreetype-dev \
+	libwebp-dev \
+	libicu-dev \
+	libpng-dev \
+	libzip-dev \
+	libmariadb-dev \
 	&& \
 	apt-get clean
 

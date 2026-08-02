@@ -89,6 +89,7 @@ RUN apk add --no-cache --virtual .build-deps \
 	linux-headers \
 	oniguruma-dev \
 	openssl-dev \
+	libmagickwand-dev \
 	readline-dev \
 	sqlite-dev \
 	upx

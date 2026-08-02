@@ -10,6 +10,7 @@ on:
 env:
     LATEST_PHP: "8.5"
     LATEST_ALPINE: "3.24"
+    LATEST_DEBIAN: "trixie"
     MIN_WORDPRESS_VERSION: "7.0.2"
 
 jobs:
