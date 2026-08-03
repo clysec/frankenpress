@@ -73,6 +73,7 @@ COPY --chmod=755 init-go/config-sample.json /init-go/config.json
 RUN rm -rf /app/* \
     && composer config --global audit.block-insecure false \    
     && composer create-project roots/bedrock --no-interaction --no-dev . \
+    && sed -i 's/"allow-plugins": {/"classmap-authoritative": true, "apcu-autoloader": true, "allow-plugins": {/g' composer.json \
     && cp .env.example .env
 
 ENV FP_GLOBAL_OPTIONS="" \
