@@ -14,49 +14,97 @@ env:
     MIN_WORDPRESS_VERSION: "7.0.2"
 
 jobs:
-    build-latest-alpine:
+    build-latest-debian:
       permissions:
         contents: read
         packages: write
       runs-on: ubuntu-latest
-      
+
       steps:
-      - name: Checkout repository content
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-      
-      - name: Login to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: clysec
-          password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Checkout repository content
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+            submodules: recursive
+        
+        - name: Login to GHCR
+          uses: docker/login-action@v2
+          with:
+            registry: ghcr.io
+            username: clysec
+            password: ${{ secrets.GITHUB_TOKEN }}
+        
+        - name: Login to Docker Hub
+          uses: docker/login-action@v2
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        
+        - name: Login to CYCR
+          uses: docker/login-action@v2
+          with:
+            registry: oci.fi
+            username: ${{ secrets.CYCR_ACCOUNT }}
+            password: ${{ secrets.CYCR_SECRET }}
+        
+        - name: Build and push Frankenpress (latest)
+          uses: docker/build-push-action@v7
+          with:
+            push: true
+            context: ./frankenpress
+            file: ./frankenpress/debian.Dockerfile
+            args: |
+              PHP_VERSION=${{ env.LATEST_PHP }}
+              DEBIAN_VERSION=${{ env.LATEST_DEBIAN }}
+              VARIANT=""
+            tags: |
+              ghcr.io/clysec/frankenpress:latest
+              docker.io/clysec/frankenpress:latest
+              oci.fi/clysec/frankenpress:latest
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    # build-latest-alpine:
+    #   permissions:
+    #     contents: read
+    #     packages: write
+    #   runs-on: ubuntu-latest
       
-      - name: Login to CYCR
-        uses: docker/login-action@v2
-        with:
-          registry: oci.fi
-          username: ${{ secrets.CYCR_ACCOUNT }}
-          password: ${{ secrets.CYCR_SECRET }}
+    #   steps:
+    #   - name: Checkout repository content
+    #     uses: actions/checkout@v4
+    #     with:
+    #       fetch-depth: 0
+    #       submodules: recursive
+      
+    #   - name: Login to GHCR
+    #     uses: docker/login-action@v2
+    #     with:
+    #       registry: ghcr.io
+    #       username: clysec
+    #       password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Frankenpress (latest)
-        uses: docker/build-push-action@v7
-        with:
-          push: true
-          context: ./frankenpress
-          file: ./frankenpress/latest.Dockerfile
-          args: |
-            IMAGE_TAG=${{ env.LATEST_PHP }}-alpine${{ env.LATEST_ALPINE }}
-            MIN_WORDPRESS_VERSION=${{ env.MIN_WORDPRESS_VERSION }}
-          tags: |
-            ghcr.io/clysec/frankenpress:latest
-            docker.io/clysec/frankenpress:latest
-            oci.fi/clysec/frankenpress:latest
+    #   - name: Login to Docker Hub
+    #     uses: docker/login-action@v2
+    #     with:
+    #       username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #       password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      
+    #   - name: Login to CYCR
+    #     uses: docker/login-action@v2
+    #     with:
+    #       registry: oci.fi
+    #       username: ${{ secrets.CYCR_ACCOUNT }}
+    #       password: ${{ secrets.CYCR_SECRET }}
+
+    #   - name: Build and push Frankenpress (latest)
+    #     uses: docker/build-push-action@v7
+    #     with:
+    #       push: true
+    #       context: ./frankenpress
+    #       file: ./frankenpress/latest.Dockerfile
+    #       args: |
+    #         IMAGE_TAG=${{ env.LATEST_PHP }}-alpine${{ env.LATEST_ALPINE }}
+    #         MIN_WORDPRESS_VERSION=${{ env.MIN_WORDPRESS_VERSION }}
+    #       tags: |
+    #         ghcr.io/clysec/frankenpress:latest
+    #         docker.io/clysec/frankenpress:latest
+    #         oci.fi/clysec/frankenpress:latest

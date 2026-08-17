@@ -14,10 +14,6 @@ ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
 FROM oci.fi/frankenphp:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
 
-COPY php.ini $PHP_INI_DIR/conf.d/wp.ini
-COPY opcache.ini $PHP_INI_DIR/conf.d/opcache-recommended.ini
-COPY errors.ini $PHP_INI_DIR/conf.d/errors.ini
-
 ENV WP_CLI_CACHE_DIR="/tmp/wpcli/cache"             \
     WP_CLI_CONFIG_PATH="/etc/wpcli/wpcli.conf"      \
     WP_CLI_PACKAGES_DIR="/etc/wpcli/packages"       \
@@ -62,6 +58,11 @@ RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini \
         /etc/composer \
     && rm -rf /tmp/* /var/lib/apt/lists/* /usr/share/doc/*   
 
+
+COPY php.ini $PHP_INI_DIR/conf.d/wp.ini
+COPY opcache.ini $PHP_INI_DIR/conf.d/opcache-recommended.ini
+COPY errors.ini $PHP_INI_DIR/conf.d/errors.ini
+
 WORKDIR /app
 
 USER frank
@@ -73,6 +74,7 @@ COPY --chmod=755 init-go/config-sample.json /init-go/config.json
 RUN rm -rf /app/* \
     && composer config --global audit.block-insecure false \    
     && composer create-project roots/bedrock --no-interaction --no-dev . \
+    && composer update --no-interaction roots/wordpress \
     && sed -i 's/"allow-plugins": {/"classmap-authoritative": true, "apcu-autoloader": true, "allow-plugins": {/g' composer.json \
     && cp .env.example .env
 
