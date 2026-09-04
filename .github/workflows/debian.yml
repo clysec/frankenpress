@@ -98,11 +98,11 @@ jobs:
             VARIANT=${{ matrix.variant }}
             FRANKENPHP_VERSION=${{ matrix.frankenphp }}
           tags: |
-            ghcr.io/clysec/frankenphp:${{ matrix.php_version }}${{ matrix.variant }}
+            ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            docker.io/clysec/frankenphp:${{ matrix.php_version }}${{ matrix.variant }}
+            docker.io/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            oci.fi/clysec/frankenphp:${{ matrix.php_version }}${{ matrix.variant }}
+            oci.fi/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
             ${{ (matrix.php_version == '8.5' && 'oci.fi/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
         
       - name: Build and Push Debian Frankenpress Docker Image
@@ -120,9 +120,6 @@ jobs:
             VARIANT=${{ matrix.variant }}
             FRANKENPHP_VERSION=${{ matrix.frankenphp }}
           tags: |
-            ghcr.io/clysec/frankenpress:${{ matrix.php_version }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            docker.io/clysec/frankenpress:${{ matrix.php_version }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            oci.fi/clysec/frankenpress:${{ matrix.php_version }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'oci.fi/clysec/frankenpress:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
+            ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+            docker.io/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+            oci.fi/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
