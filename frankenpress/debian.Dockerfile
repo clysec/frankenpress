@@ -12,7 +12,7 @@ RUN go build -o /init-go/init-go main.go
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM oci.fi/frankenphp:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
+FROM ghcr.io/clysec/frankenphp:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
 
 ENV WP_CLI_CACHE_DIR="/tmp/wpcli/cache"             \
     WP_CLI_CONFIG_PATH="/etc/wpcli/wpcli.conf"      \
