@@ -76,6 +76,7 @@ jobs:
           file: ./base/php/${{ matrix.php_version }}/${{ matrix.debian }}/zts/Dockerfile
           cache-from: type=registry,ref=ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}-cache
           cache-to: type=registry,ref=ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}-cache,mode=max
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
             docker.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
