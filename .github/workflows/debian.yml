@@ -84,11 +84,12 @@ jobs:
 
 
       - name: Build and Push Debian FrankenPHP Docker Image
-        uses: depot/build-push-action@v1
+        uses: docker/build-push-action@v7
         with:
-          project: 35gblm93v9
           context: ./frankenphp
           file: ./frankenphp/debian.Dockerfile
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           push: true
           platforms: linux/amd64,linux/arm64
           args: |
@@ -105,13 +106,14 @@ jobs:
             ${{ (matrix.php_version == '8.5' && 'oci.fi/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
         
       - name: Build and Push Debian Frankenpress Docker Image
-        uses: depot/build-push-action@v1
+        uses: docker/build-push-action@v7
         with:
-          project: 35gblm93v9
           context: ./frankenpress
           file: ./frankenpress/debian.Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           args: |
             PHP_VERSION=${{ matrix.php_version }}
             DEBIAN_VERSION=${{ matrix.debian }}
