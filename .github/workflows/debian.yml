@@ -1,18 +1,22 @@
+name: Debian images
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
-    workflow_dispatch:
-  
 jobs:
-  build-base:
-    runs-on: ubuntu-latest
+  # One job per (matrix entry, architecture). Each job builds the whole chain
+  # natively for its architecture and pushes arch-suffixed tags; the merge job
+  # below assembles the multi-arch manifests.
+  build:
+    runs-on: ${{ matrix.arch.runner }}
     permissions:
       contents: read
       packages: write
       id-token: write
-    
+
     strategy:
       fail-fast: true
       matrix:
@@ -25,41 +29,44 @@ jobs:
         debian:
           - "trixie"
         frankenphp:
-          - V1.12.4
-    
+          - v1.12.4
+        go_version:
+          - "1.26"
+        arch:
+          - { name: amd64, platform: linux/amd64, runner: ubuntu-24.04 }
+          - { name: arm64, platform: linux/arm64, runner: ubuntu-24.04-arm }
+
+    env:
+      TAG: ${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+      ARCH: ${{ matrix.arch.name }}
+
     steps:
       - name: Checkout repository content
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: recursive
-      
+
       - name: Login to GHCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: clysec
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        
+
       - name: Login to CYCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: oci.fi
           username: ${{ secrets.CYCR_ACCOUNT }}
           password: ${{ secrets.CYCR_SECRET }}
-  
-      - name: Get PHP commit version
-        id: php_commit_sha
-        run: |
-          cd base/php
-          echo "PHP_COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      
+
       - name: Prepare PHP Dockerfiles
         run: |
           cd base
@@ -69,57 +76,155 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push PHP-ZTS
+        id: php_zts
         uses: docker/build-push-action@v7
         with:
           push: true
           context: ./base/php/${{ matrix.php_version }}/${{ matrix.debian }}/zts
           file: ./base/php/${{ matrix.php_version }}/${{ matrix.debian }}/zts/Dockerfile
-          cache-from: type=registry,ref=ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}-cache
-          cache-to: type=registry,ref=ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}-cache,mode=max
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/php-zts:${{ env.TAG }}-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/php-zts:${{ env.TAG }}-cache-${{ env.ARCH }},mode=max
           tags: |
-            ghcr.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            docker.io/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            oci.fi/clysec/php-zts:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+            ghcr.io/clysec/php-zts:${{ env.TAG }}-${{ env.ARCH }}
+            docker.io/clysec/php-zts:${{ env.TAG }}-${{ env.ARCH }}
+            oci.fi/clysec/php-zts:${{ env.TAG }}-${{ env.ARCH }}
 
-
-      - name: Build and Push Debian FrankenPHP Docker Image
+      - name: Build and push FrankenPHP
+        id: frankenphp
         uses: docker/build-push-action@v7
         with:
+          push: true
+          pull: true
           context: ./frankenphp
           file: ./frankenphp/debian.Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: true
-          platforms: linux/amd64,linux/arm64
-          args: |
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/frankenphp:${{ env.TAG }}-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/frankenphp:${{ env.TAG }}-cache-${{ env.ARCH }},mode=max
+          build-args: |
+            BASE_IMAGE=ghcr.io/clysec/php-zts@${{ steps.php_zts.outputs.digest }}
             PHP_VERSION=${{ matrix.php_version }}
             DEBIAN_VERSION=${{ matrix.debian }}
             VARIANT=${{ matrix.variant }}
             FRANKENPHP_VERSION=${{ matrix.frankenphp }}
+            GO_VERSION=${{ matrix.go_version }}
+          # Authenticated GitHub API call for the e-dant/watcher release lookup (shared runner IPs get rate-limited).
+          secrets: |
+            github-token=${{ secrets.GITHUB_TOKEN }}
           tags: |
-            ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'ghcr.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            docker.io/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'docker.io/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-            oci.fi/clysec/frankenphp:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            ${{ (matrix.php_version == '8.5' && 'oci.fi/clysec/frankenphp:latest') || '' }}${{ (matrix.php_version == '8.5' && matrix.variant) || '' }}  
-        
-      - name: Build and Push Debian Frankenpress Docker Image
+            ghcr.io/clysec/frankenphp:${{ env.TAG }}-${{ env.ARCH }}
+            docker.io/clysec/frankenphp:${{ env.TAG }}-${{ env.ARCH }}
+            oci.fi/clysec/frankenphp:${{ env.TAG }}-${{ env.ARCH }}
+
+      - name: Build and push Frankenpress (builder)
         uses: docker/build-push-action@v7
         with:
+          push: true
+          pull: true
           context: ./frankenpress
           file: ./frankenpress/debian.Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          args: |
+          target: builder
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/frankenpress:${{ env.TAG }}-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/frankenpress:${{ env.TAG }}-cache-${{ env.ARCH }},mode=max
+          build-args: |
+            BASE_IMAGE=ghcr.io/clysec/frankenphp@${{ steps.frankenphp.outputs.digest }}
             PHP_VERSION=${{ matrix.php_version }}
             DEBIAN_VERSION=${{ matrix.debian }}
             VARIANT=${{ matrix.variant }}
-            FRANKENPHP_VERSION=${{ matrix.frankenphp }}
           tags: |
-            ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            docker.io/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
-            oci.fi/clysec/frankenpress:${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+            ghcr.io/clysec/frankenpress:${{ env.TAG }}-builder-${{ env.ARCH }}
+            docker.io/clysec/frankenpress:${{ env.TAG }}-builder-${{ env.ARCH }}
+            oci.fi/clysec/frankenpress:${{ env.TAG }}-builder-${{ env.ARCH }}
+
+      - name: Build and push Frankenpress
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          pull: true
+          context: ./frankenpress
+          file: ./frankenpress/debian.Dockerfile
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/frankenpress:${{ env.TAG }}-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/frankenpress:${{ env.TAG }}-cache-${{ env.ARCH }},mode=max
+          build-args: |
+            BASE_IMAGE=ghcr.io/clysec/frankenphp@${{ steps.frankenphp.outputs.digest }}
+            PHP_VERSION=${{ matrix.php_version }}
+            DEBIAN_VERSION=${{ matrix.debian }}
+            VARIANT=${{ matrix.variant }}
+          tags: |
+            ghcr.io/clysec/frankenpress:${{ env.TAG }}-${{ env.ARCH }}
+            docker.io/clysec/frankenpress:${{ env.TAG }}-${{ env.ARCH }}
+            oci.fi/clysec/frankenpress:${{ env.TAG }}-${{ env.ARCH }}
+
+  merge:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: true
+      matrix:
+        php_version:
+          # - "8.4"
+          - "8.5"
+        variant:
+          - ""
+          # - "-devcontainer"
+        debian:
+          - "trixie"
+
+    env:
+      TAG: ${{ matrix.php_version }}-${{ matrix.debian }}${{ matrix.variant }}
+      VARIANT: ${{ matrix.variant }}
+      TAG_LATEST: ${{ matrix.php_version == '8.5' && 'true' || 'false' }}
+
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: clysec
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to CYCR
+        uses: docker/login-action@v3
+        with:
+          registry: oci.fi
+          username: ${{ secrets.CYCR_ACCOUNT }}
+          password: ${{ secrets.CYCR_SECRET }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create multi-arch manifests
+        run: |
+          set -eux
+          for reg in ghcr.io docker.io oci.fi; do
+            for img in php-zts frankenphp frankenpress; do
+              docker buildx imagetools create -t "$reg/clysec/$img:$TAG" \
+                "$reg/clysec/$img:$TAG-amd64" "$reg/clysec/$img:$TAG-arm64"
+            done
+            docker buildx imagetools create -t "$reg/clysec/frankenpress:$TAG-builder" \
+              "$reg/clysec/frankenpress:$TAG-builder-amd64" "$reg/clysec/frankenpress:$TAG-builder-arm64"
+            if [ "$TAG_LATEST" = "true" ]; then
+              docker buildx imagetools create -t "$reg/clysec/frankenphp:latest$VARIANT" \
+                "$reg/clysec/frankenphp:$TAG-amd64" "$reg/clysec/frankenphp:$TAG-arm64"
+            fi
+          done
+
+  build-latest:
+    needs: merge
+    uses: ./.github/workflows/latest.yml
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit

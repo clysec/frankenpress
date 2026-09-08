@@ -1,17 +1,22 @@
     {
         skip_install_trust
 
-        auto_https off {
-          disable_redirects
-        }
+        auto_https off
+
+        {$FP_GLOBAL_OPTIONS}
 
         frankenphp {
           php_ini {
                   disable_functions exec,passthru,shell_exec,system,proc_open,popen,show_source
                   memory_limit 1G
-                  max_execution_time 600
-                  max_input_time 600
+                  max_execution_time {$FP_MAX_EXECUTION_TIME:600}
+                  max_input_time {$FP_MAX_INPUT_TIME:600}
           }
+
+          # Fail with 503 instead of queueing forever when every PHP thread is busy.
+          max_wait_time {$FP_MAX_WAIT_TIME:30s}
+
+          {$FP_FRANKENPHP_OPTIONS}
         }
 
         http_port {$FP_HTTP_PORT:8080}
@@ -20,20 +25,24 @@
         order rewrite before respond
         order route before rewrite
         servers {
-          trusted_proxies static private_ranges
+          trusted_proxies static {$FP_TRUSTED_PROXIES:private_ranges}
         }
     }
+
+    {$FP_EXTRA_CONFIG}
 
     {$FP_SERVER_NAME}, http:// {
           encode zstd br gzip
           log {
-            level WARN
+            level {$FP_LOG_LEVEL:WARN}
           }
+
+          {$FP_SERVER_OPTIONS}
 
           @healthcheck {
             path /unit-ping /fpm-ping
           }
-          respond @healthcheck 200 "OK"
+          respond @healthcheck "OK" 200
 
           @wpadmin {
             path_regexp wpadmin ^/wp-admin(.*)$
@@ -48,18 +57,35 @@
           @uploadsphp {
             path /app/uploads/*.php
           }
-          respond @uploadsphp 401 "Unauthorized"
+          respond @uploadsphp "Unauthorized" 401
 
+          # Serve a pre-generated .webp next to the original, only to clients that accept it.
           @images {
             path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
+            header Accept *image/webp*
           }
           handle @images {
             root * /app/web
+            header +Vary Accept
             try_files {path}.webp {re.images.1}.webp {path}
             file_server
           }
 
           root /app/web
+
+          # TLS terminated by a trusted proxy (ingress, load balancer): FrankenPHP only
+          # sets HTTPS from the actual connection, so tell PHP/WordPress about it.
+          @fwd_https {
+            header X-Forwarded-Proto https
+            remote_ip {$FP_TRUSTED_PROXIES:private_ranges}
+          }
+          php_server @fwd_https {
+              root /app/web
+              env HTTPS on
+              env REQUEST_SCHEME https
+
+              {$FP_PHP_SERVER_OPTIONS}
+          }
 
           php_server {
               root /app/web

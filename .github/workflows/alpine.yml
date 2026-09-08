@@ -91,7 +91,7 @@ jobs:
           file: ./frankenphp/Dockerfile
           cache-from: type=registry,ref=ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}-cache
           cache-to: type=registry,ref=ghcr.io/clysec/frankenphp:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}-cache,mode=max
-          args: |
+          build-args: |
             PHP_VERSION=${{ matrix.php_version }}
             ALPINE_VERSION=${{ matrix.alpine }}
             VARIANT=${{ matrix.variant }}
@@ -109,7 +109,7 @@ jobs:
           file: ./frankenpress/Dockerfile
           cache-from: type=registry,ref=ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}-cache
           cache-to: type=registry,ref=ghcr.io/clysec/frankenpress:${{ matrix.php_version }}-alpine${{ matrix.alpine }}${{ matrix.variant }}-cache,mode=max
-          args: |
+          build-args: |
             PHP_VERSION=${{ matrix.php_version }}
             ALPINE_VERSION=${{ matrix.alpine }}
             VARIANT=${{ matrix.variant }}

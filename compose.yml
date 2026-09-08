@@ -10,17 +10,33 @@ services:
       context: ./frankenphp
       dockerfile: debian.Dockerfile
       args:
+        BASE_IMAGE: oci.fi/php-zts:8.5-trixie
         PHP_VERSION: "8.5"
         DEBIAN_VERSION: trixie
         VARIANT: ""
         FRANKENPHP_VERSION: v1.12.4
-  
+
+  # Full image with the PHP toolchain (use as base for install-php-extensions).
+  frankenpress-builder:
+    image: oci.fi/frankenpress:8.5-trixie-builder
+    build:
+      context: ./frankenpress
+      dockerfile: debian.Dockerfile
+      target: builder
+      args:
+        BASE_IMAGE: oci.fi/frankenphp:8.5-trixie
+        PHP_VERSION: "8.5"
+        DEBIAN_VERSION: trixie
+        VARIANT: ""
+
+  # Slim runtime image (default target).
   frankenpress:
     image: oci.fi/frankenpress:8.5-trixie
     build:
       context: ./frankenpress
       dockerfile: debian.Dockerfile
       args:
+        BASE_IMAGE: oci.fi/frankenphp:8.5-trixie
         PHP_VERSION: "8.5"
         DEBIAN_VERSION: trixie
         VARIANT: ""

@@ -1,114 +1,141 @@
+name: Frankenpress latest
+
 on:
-    schedule:
-        - cron: '0 0 * * *'
-          timezone: Europe/Berlin
-
-    workflow_call:
-    workflow_dispatch:
-
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_call:
+  workflow_dispatch:
 
 env:
-    LATEST_PHP: "8.5"
-    LATEST_ALPINE: "3.24"
-    LATEST_DEBIAN: "trixie"
-    MIN_WORDPRESS_VERSION: "7.0.2"
+  LATEST_PHP: "8.5"
+  LATEST_DEBIAN: "trixie"
 
 jobs:
-    build-latest-debian:
-      permissions:
-        contents: read
-        packages: write
-      runs-on: ubuntu-latest
+  # Rebuild Frankenpress from the published FrankenPHP base so `latest` always
+  # carries the newest Bedrock/WordPress release. One native job per arch.
+  build:
+    runs-on: ${{ matrix.arch.runner }}
+    permissions:
+      contents: read
+      packages: write
 
-      steps:
-        - name: Checkout repository content
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0
-            submodules: recursive
-        
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v4
-        
-        - name: Login to GHCR
-          uses: docker/login-action@v2
-          with:
-            registry: ghcr.io
-            username: clysec
-            password: ${{ secrets.GITHUB_TOKEN }}
-        
-        - name: Login to Docker Hub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        
-        - name: Login to CYCR
-          uses: docker/login-action@v2
-          with:
-            registry: oci.fi
-            username: ${{ secrets.CYCR_ACCOUNT }}
-            password: ${{ secrets.CYCR_SECRET }}
-        
-        - name: Build and push Frankenpress (latest)
-          uses: docker/build-push-action@v7
-          with:
-            push: true
-            context: ./frankenpress
-            file: ./frankenpress/debian.Dockerfile
-            platforms: linux/amd64,linux/arm64
-            args: |
-              PHP_VERSION=${{ env.LATEST_PHP }}
-              DEBIAN_VERSION=${{ env.LATEST_DEBIAN }}
-              VARIANT=""
-            tags: |
-              ghcr.io/clysec/frankenpress:latest
-              docker.io/clysec/frankenpress:latest
-              oci.fi/clysec/frankenpress:latest
+    strategy:
+      fail-fast: true
+      matrix:
+        arch:
+          - { name: amd64, platform: linux/amd64, runner: ubuntu-24.04 }
+          - { name: arm64, platform: linux/arm64, runner: ubuntu-24.04-arm }
 
-    # build-latest-alpine:
-    #   permissions:
-    #     contents: read
-    #     packages: write
-    #   runs-on: ubuntu-latest
-      
-    #   steps:
-    #   - name: Checkout repository content
-    #     uses: actions/checkout@v4
-    #     with:
-    #       fetch-depth: 0
-    #       submodules: recursive
-      
-    #   - name: Login to GHCR
-    #     uses: docker/login-action@v2
-    #     with:
-    #       registry: ghcr.io
-    #       username: clysec
-    #       password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ARCH: ${{ matrix.arch.name }}
 
-    #   - name: Login to Docker Hub
-    #     uses: docker/login-action@v2
-    #     with:
-    #       username: ${{ secrets.DOCKERHUB_USERNAME }}
-    #       password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      
-    #   - name: Login to CYCR
-    #     uses: docker/login-action@v2
-    #     with:
-    #       registry: oci.fi
-    #       username: ${{ secrets.CYCR_ACCOUNT }}
-    #       password: ${{ secrets.CYCR_SECRET }}
+    steps:
+      - name: Checkout repository content
+        uses: actions/checkout@v5
 
-    #   - name: Build and push Frankenpress (latest)
-    #     uses: docker/build-push-action@v7
-    #     with:
-    #       push: true
-    #       context: ./frankenpress
-    #       file: ./frankenpress/latest.Dockerfile
-    #       args: |
-    #         IMAGE_TAG=${{ env.LATEST_PHP }}-alpine${{ env.LATEST_ALPINE }}
-    #         MIN_WORDPRESS_VERSION=${{ env.MIN_WORDPRESS_VERSION }}
-    #       tags: |
-    #         ghcr.io/clysec/frankenpress:latest
-    #         docker.io/clysec/frankenpress:latest
-    #         oci.fi/clysec/frankenpress:latest
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: clysec
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to CYCR
+        uses: docker/login-action@v3
+        with:
+          registry: oci.fi
+          username: ${{ secrets.CYCR_ACCOUNT }}
+          password: ${{ secrets.CYCR_SECRET }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push Frankenpress latest (builder)
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          pull: true
+          context: ./frankenpress
+          file: ./frankenpress/debian.Dockerfile
+          target: builder
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/frankenpress:latest-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/frankenpress:latest-cache-${{ env.ARCH }},mode=max
+          build-args: |
+            BASE_IMAGE=ghcr.io/clysec/frankenphp:${{ env.LATEST_PHP }}-${{ env.LATEST_DEBIAN }}
+            PHP_VERSION=${{ env.LATEST_PHP }}
+            DEBIAN_VERSION=${{ env.LATEST_DEBIAN }}
+            VARIANT=
+            BEDROCK_CACHE_BUST=${{ github.run_id }}
+          tags: |
+            ghcr.io/clysec/frankenpress:latest-builder-${{ env.ARCH }}
+            docker.io/clysec/frankenpress:latest-builder-${{ env.ARCH }}
+            oci.fi/clysec/frankenpress:latest-builder-${{ env.ARCH }}
+
+      - name: Build and push Frankenpress latest
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          pull: true
+          context: ./frankenpress
+          file: ./frankenpress/debian.Dockerfile
+          platforms: ${{ matrix.arch.platform }}
+          cache-from: type=registry,ref=ghcr.io/clysec/frankenpress:latest-cache-${{ env.ARCH }}
+          cache-to: type=registry,ref=ghcr.io/clysec/frankenpress:latest-cache-${{ env.ARCH }},mode=max
+          build-args: |
+            BASE_IMAGE=ghcr.io/clysec/frankenphp:${{ env.LATEST_PHP }}-${{ env.LATEST_DEBIAN }}
+            PHP_VERSION=${{ env.LATEST_PHP }}
+            DEBIAN_VERSION=${{ env.LATEST_DEBIAN }}
+            VARIANT=
+            BEDROCK_CACHE_BUST=${{ github.run_id }}
+          tags: |
+            ghcr.io/clysec/frankenpress:latest-${{ env.ARCH }}
+            docker.io/clysec/frankenpress:latest-${{ env.ARCH }}
+            oci.fi/clysec/frankenpress:latest-${{ env.ARCH }}
+
+  merge:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: clysec
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to CYCR
+        uses: docker/login-action@v3
+        with:
+          registry: oci.fi
+          username: ${{ secrets.CYCR_ACCOUNT }}
+          password: ${{ secrets.CYCR_SECRET }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create multi-arch manifests
+        run: |
+          set -eux
+          for reg in ghcr.io docker.io oci.fi; do
+            for tag in latest latest-builder; do
+              docker buildx imagetools create -t "$reg/clysec/frankenpress:$tag" \
+                "$reg/clysec/frankenpress:$tag-amd64" "$reg/clysec/frankenpress:$tag-arm64"
+            done
+          done

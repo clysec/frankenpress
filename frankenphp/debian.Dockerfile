@@ -5,17 +5,26 @@
 ARG PHP_VERSION=8.5
 ARG DEBIAN_VERSION=trixie
 ARG VARIANT=
-FROM ghcr.io/clysec/php-zts:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT} AS common
+# Overridable so CI can point at a per-architecture image by digest.
+ARG BASE_IMAGE=ghcr.io/clysec/php-zts:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT}
+# Go toolchain pinned like upstream (docker-bake.hcl GO_VERSION); Debian variant to match the builder.
+ARG GO_VERSION=1.26
+FROM golang:${GO_VERSION}-trixie AS golang-base
+
+FROM ${BASE_IMAGE} AS common
+
+ARG INSTALL_PHP_EXTENSIONS_VERSION=2.11.12
 
 WORKDIR /app
 
-RUN apt-get update \
-	&& apt-get -y install --no-install-recommends \
+RUN apt-get update && \
+	apt-get -y install --no-install-recommends \
 		ca-certificates \
 		mailcap \
 		libcap2-bin \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/* \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
 	mkdir -p \
@@ -25,14 +34,14 @@ RUN set -eux; \
 		/etc/caddy \
 		/etc/frankenphp; \
 	sed -i 's/php/frankenphp run/g' /usr/local/bin/docker-php-entrypoint; \
-	echo '<?php phpinfo();' > /app/public/index.php 
+	echo '<?php phpinfo();' > /app/public/index.php
 
 COPY --link ./frankenphp/caddy/frankenphp/Caddyfile /etc/caddy/Caddyfile
 
 RUN ln /etc/caddy/Caddyfile /etc/frankenphp/Caddyfile && \
-	curl -sSLf \
+	curl -fsSL \
 		-o /usr/local/bin/install-php-extensions \
-		https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
+		"https://github.com/mlocati/docker-php-extension-installer/releases/download/${INSTALL_PHP_EXTENSIONS_VERSION}/install-php-extensions" && \
 	chmod +x /usr/local/bin/install-php-extensions
 
 CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
@@ -60,7 +69,7 @@ ARG FRANKENPHP_VERSION='dev'
 ARG NO_COMPRESS=''
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-COPY --from=golang:1-alpine /usr/local/go /usr/local/go
+COPY --from=golang-base /usr/local/go /usr/local/go
 
 ENV PATH=/usr/local/go/bin:$PATH
 ENV GOTOOLCHAIN=local
@@ -94,18 +103,18 @@ RUN apt-get update && \
 WORKDIR /usr/local/src/watcher
 RUN --mount=type=secret,id=github-token \
     if [ -f /run/secrets/github-token ] && [ -s /run/secrets/github-token ]; then \
-        curl -s -H "Authorization: Bearer $(cat /run/secrets/github-token)" https://api.github.com/repos/e-dant/watcher/releases/latest; \
+        curl -fsS -H "Authorization: Bearer $(cat /run/secrets/github-token)" https://api.github.com/repos/e-dant/watcher/releases/latest; \
     else \
-        curl -s https://api.github.com/repos/e-dant/watcher/releases/latest; \
+        curl -fsS https://api.github.com/repos/e-dant/watcher/releases/latest; \
     fi | \
     grep tarball_url | \
     awk '{ print $2 }' | \
     sed 's/,$//' | \
     sed 's/"//g' | \
-    xargs curl -L | \
+    xargs curl -fsSL | \
     tar xz --strip-components 1 && \
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build && \
+    cmake --build build --parallel && \
     cmake --install build && \
     ldconfig
 
@@ -128,7 +137,7 @@ ENV CGO_LDFLAGS="-L/usr/local/lib -lssl -lcrypto -lreadline -largon2 -lcurl -lon
 
 WORKDIR /go/src/app/caddy/frankenphp
 RUN GOBIN=/usr/local/bin \
-	../../go.sh install -ldflags "-w -s -X 'github.com/caddyserver/caddy/v2.CustomVersion=FrankenPHP $FRANKENPHP_VERSION PHP $PHP_VERSION Caddy'" -buildvcs=true && \
+	../../go.sh install -ldflags "-w -s -X 'github.com/caddyserver/caddy/v2.CustomVersion=FrankenPHP $FRANKENPHP_VERSION PHP $PHP_VERSION Caddy' -X 'github.com/caddyserver/caddy/v2.CustomBinaryName=frankenphp' -X 'github.com/caddyserver/caddy/v2/modules/caddyhttp.ServerHeader=FrankenPHP Caddy'" -buildvcs=true && \
 	setcap cap_net_bind_service=+ep /usr/local/bin/frankenphp && \
 	cp Caddyfile /etc/frankenphp/Caddyfile && \
 	frankenphp version && \
@@ -148,6 +157,8 @@ RUN apt-get install -y --no-install-recommends libstdc++6 && \
 	ldconfig
 
 COPY --from=builder /usr/local/bin/frankenphp /usr/local/bin/frankenphp
-RUN setcap cap_net_bind_service=+ep /usr/local/bin/frankenphp && \
+# The builder already applied the capability; only re-apply it if the xattr
+# was lost in the copy (re-applying rewrites the 50+ MB binary into a new layer).
+RUN (getcap /usr/local/bin/frankenphp | grep -q cap_net_bind_service || setcap cap_net_bind_service=+ep /usr/local/bin/frankenphp) && \
 	frankenphp version && \
 	frankenphp build-info
