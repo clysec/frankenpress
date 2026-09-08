@@ -26,7 +26,7 @@ jobs:
         alpine:
           - "3.24"
         frankenphp:
-          - V1.12.4
+          - v1.12.7
     
     steps:
       - name: Checkout repository content

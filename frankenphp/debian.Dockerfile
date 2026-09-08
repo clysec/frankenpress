@@ -8,7 +8,7 @@ ARG VARIANT=
 # Overridable so CI can point at a per-architecture image by digest.
 ARG BASE_IMAGE=ghcr.io/clysec/php-zts:${PHP_VERSION}-${DEBIAN_VERSION}${VARIANT}
 # Go toolchain pinned like upstream (docker-bake.hcl GO_VERSION); Debian variant to match the builder.
-ARG GO_VERSION=1.26
+ARG GO_VERSION=1.27
 FROM golang:${GO_VERSION}-trixie AS golang-base
 
 FROM ${BASE_IMAGE} AS common

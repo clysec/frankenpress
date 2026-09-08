@@ -14,7 +14,7 @@ services:
         PHP_VERSION: "8.5"
         DEBIAN_VERSION: trixie
         VARIANT: ""
-        FRANKENPHP_VERSION: v1.12.4
+        FRANKENPHP_VERSION: v1.12.7
 
   # Full image with the PHP toolchain (use as base for install-php-extensions).
   frankenpress-builder:

@@ -29,9 +29,9 @@ jobs:
         debian:
           - "trixie"
         frankenphp:
-          - v1.12.4
+          - v1.12.7
         go_version:
-          - "1.26"
+          - "1.27"
         arch:
           - { name: amd64, platform: linux/amd64, runner: ubuntu-24.04 }
           - { name: arm64, platform: linux/arm64, runner: ubuntu-24.04-arm }
