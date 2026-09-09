@@ -59,58 +59,88 @@
             -X-Powered-By
           }
 
-          @healthcheck {
-            path /unit-ping /fpm-ping
-          }
-          respond @healthcheck "OK" 200
+          # Keep denials ahead of rewrites, WebP negotiation and PHP dispatch.
+          route {
+            @xmlrpc_disabled {
+              path_regexp xmlrpc (?i)(^|/)xmlrpc\.php
+              expression `"{$FP_XMLRPC_ENABLED:false}" != "true"`
+            }
+            respond @xmlrpc_disabled "Forbidden" 403
 
-          @wpadmin {
-            path_regexp wpadmin ^/wp-admin(.*)$
-          }
-          redir @wpadmin /wp/wp-admin{re.wpadmin.1} permanent
+            @private_files {
+              path_regexp private_files (?i)(^|/)(wp-config\.php[^/]*|(composer\.(json|lock)|auth\.json|debug\.log)([.~][^/]*)?)(/|$)
+            }
+            respond @private_files "Forbidden" 403
 
-          @wplogin {
-            path /wp-login.php*
-          }
-          redir @wplogin /wp/wp-login.php permanent
+            @protected_php {
+              path_regexp protected_php (?i)/(?:app/(?:uploads|cache)|wp-content/(?:uploads|cache)|uploads|cache|(?:wp/)?wp-includes)(?:/.*)?/[^/]*\.(?:php[^/]*|phtml|pht|phar)(?:/|$)
+            }
+            respond @protected_php "Forbidden" 403
 
-          @uploadsphp {
-            path /app/uploads/*.php
-          }
-          respond @uploadsphp "Unauthorized" 401
+            @dotfiles {
+              path_regexp dotfiles (^|/)\.
+              not path /.well-known/*
+            }
+            respond @dotfiles "Forbidden" 403
+            # The public .well-known namespace must not expose nested dotfiles.
+            @well_known_dotfiles path_regexp well_known_dotfiles ^/\.well-known/(.*/)?\.
+            respond @well_known_dotfiles "Forbidden" 403
 
-          # Serve a pre-generated .webp next to the original, only to clients that accept it.
-          @images {
-            path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
-            header Accept *image/webp*
-          }
-          handle @images {
-            root * /app/web
-            header +Vary Accept
-            try_files {path}.webp {re.images.1}.webp {path}
-            file_server
-          }
+            @healthcheck {
+              path /unit-ping /fpm-ping
+            }
+            respond @healthcheck "OK" 200
 
-          root /app/web
+            @wpadmin {
+              path_regexp wpadmin ^/wp-admin(.*)$
+            }
+            redir @wpadmin /wp/wp-admin{re.wpadmin.1} permanent
 
-          # TLS terminated by a trusted proxy (ingress, load balancer): FrankenPHP only
-          # sets HTTPS from the actual connection, so tell PHP/WordPress about it.
-          @fwd_https {
-            header X-Forwarded-Proto https
-            remote_ip {$FP_TRUSTED_PROXIES:private_ranges}
-          }
-          php_server @fwd_https {
-              root /app/web
-              env HTTPS on
-              env REQUEST_SCHEME https
+            @wplogin {
+              path /wp-login.php*
+            }
+            redir @wplogin /wp/wp-login.php permanent
 
-              {$FP_PHP_SERVER_OPTIONS}
-          }
+            # Serve a pre-generated .webp next to the original, only to clients that accept it.
+            @images {
+              path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
+              header Accept *image/webp*
+            }
+            handle @images {
+              root * /app/web
+              header +Vary Accept
+              try_files {path}.webp {re.images.1}.webp {path}
+              file_server
+            }
 
-          php_server {
-              root /app/web
+            # These trees are static-only, including requests for directory indexes.
+            @static_only path_regexp static_only (?i)/(?:app/(?:uploads|cache)|wp-content/(?:uploads|cache)|uploads|cache|(?:wp/)?wp-includes)(/|$)
+            handle @static_only {
+              root * /app/web
+              file_server
+            }
 
-              {$FP_PHP_SERVER_OPTIONS}
+            root /app/web
+
+            # TLS terminated by a trusted proxy (ingress, load balancer): FrankenPHP only
+            # sets HTTPS from the actual connection, so tell PHP/WordPress about it.
+            @fwd_https {
+              header X-Forwarded-Proto https
+              remote_ip {$FP_TRUSTED_PROXIES:private_ranges}
+            }
+            php_server @fwd_https {
+                root /app/web
+                env HTTPS on
+                env REQUEST_SCHEME https
+
+                {$FP_PHP_SERVER_OPTIONS}
+            }
+
+            php_server {
+                root /app/web
+
+                {$FP_PHP_SERVER_OPTIONS}
+            }
           }
     }
 

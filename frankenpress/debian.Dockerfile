@@ -103,6 +103,8 @@ RUN set -eux; \
 
 # Config last so edits do not invalidate the Bedrock layer above.
 COPY --chown=frank:frank Caddyfile /etc/frankenphp/Caddyfile
+# Standalone MU plugin is outside Composer-managed package directories.
+COPY --chown=frank:frank mu-plugins/frankenpress-security.php /app/web/app/mu-plugins/frankenpress-security.php
 COPY --from=gobuild --chown=frank:frank /init-go/init-go /init-go/init-go
 COPY --chown=frank:frank init-go/config-sample.json /init-go/config.json
 

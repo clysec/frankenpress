@@ -40,6 +40,7 @@ All knobs are environment variables read by the Caddyfile at start-up:
 | `FP_CSP_HEADER` | `Content-Security-Policy` | Set to `Content-Security-Policy-Report-Only` to test a policy without enforcing it |
 | `FP_CSP_ENABLED` | `true` | `false` disables the CSP header entirely |
 | `FP_SECURITY_HEADERS` | `true` | `false` disables `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin` and the removal of `X-Powered-By` |
+| `FP_XMLRPC_ENABLED` | `false` | Only `true` allows XML-RPC HTTP requests; pingbacks remain disabled. Set in the container environment and restart, not just Bedrock's `.env` |
 | `FP_GLOBAL_OPTIONS` | empty | Extra Caddy global options (e.g. `servers { metrics }` to expose FrankenPHP Prometheus metrics on the loopback admin API `localhost:2019/metrics`) |
 | `FP_FRANKENPHP_OPTIONS` | empty | Extra directives inside the `frankenphp` block (e.g. `num_threads 4`) |
 | `FP_EXTRA_CONFIG` | empty | Extra top-level Caddyfile content (additional sites) |
@@ -48,6 +49,45 @@ All knobs are environment variables read by the Caddyfile at start-up:
 
 WordPress itself is configured through Bedrock's `.env` and environment variables (`WP_ENV`, `WP_HOME`, `DATABASE_URL`, salts).
 Images that have a `.webp` sibling (`photo.jpg.webp` or `photo.webp`) are served to clients that send `Accept: image/webp`.
+
+### Request hardening
+
+XML-RPC requests return 403 by default, including `/wp/xmlrpc.php` and requests with
+path suffixes. Set `FP_XMLRPC_ENABLED=true` in the container environment for integrations
+that require XML-RPC. The bundled `frankenpress-security.php` must-use plugin still removes
+both pingback XML-RPC methods, prevents outgoing pingbacks (including queued ones), and
+suppresses WordPress's pingback discovery header and URL.
+
+Uploads, cache and `wp-includes` trees are static-only: direct PHP requests return 403,
+and directory requests cannot execute `index.php`. This covers `/app/uploads`, `/app/cache`,
+`/wp/wp-includes`, and conventional `/uploads`, `/cache`, `/wp-includes` and
+`/wp-content/{uploads,cache}` paths, including nested files and PHP path suffixes.
+Internal PHP includes continue to work. There are no exceptions for legacy Multisite
+media serving or PHP endpoints used by legacy editors/cache plugins. Custom upload/cache
+locations require corresponding Caddy rules.
+
+Dotfiles, Composer manifests/credentials, `wp-config.php` and its backups, and `debug.log`
+are denied over HTTP. Public `/.well-known/` resources remain accessible, but nested
+dotfiles there are denied too. Static media, WebP negotiation and ordinary plugin PHP
+endpoints remain available.
+
+The Caddy rules live outside the application at `/etc/frankenphp/Caddyfile`. The standalone
+MU plugin lives at `/app/web/app/mu-plugins/frankenpress-security.php`, outside Composer's
+package directories; WordPress loads it automatically without activation. Both survive
+`composer update`, including WordPress replacement, without patching core or Bedrock files.
+If a deployment replaces/mounts all of `/app` or `web/app/mu-plugins`, it must include this
+file in its application tree. Custom replacement Caddyfiles must retain the hardening rules.
+
+Run regression checks against a locally built image:
+
+```sh
+python3 frankenpress/tests/security.py --image oci.fi/frankenpress:8.5-trixie
+# Also verify the installed MU plugin survives an actual Composer update (network required):
+python3 frankenpress/tests/security.py --image oci.fi/frankenpress:8.5-trixie --composer-update
+```
+
+Tests use disposable containers, check HTTP denial and normal routing, and exercise the
+plugin with WordPress's hook implementation. They do not need a database.
 
 ### Content-Security-Policy
 

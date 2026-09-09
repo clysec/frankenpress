@@ -67,6 +67,8 @@ RUN rm -rf /app/* \
     && composer config --global policy.advisories.block false
 
 COPY Caddyfile /etc/frankenphp/Caddyfile
+# Standalone MU plugin is outside Composer-managed package directories.
+COPY --chown=frank:frank mu-plugins/frankenpress-security.php /app/web/app/mu-plugins/frankenpress-security.php
 COPY --from=gobuild --chown=frank:frank /init-go/init-go /init-go/init-go
 COPY --chmod=755 init-go/config-sample.json /init-go/config.json
 
