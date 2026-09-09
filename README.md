@@ -36,6 +36,10 @@ All knobs are environment variables read by the Caddyfile at start-up:
 | `FP_MAX_EXECUTION_TIME` / `FP_MAX_INPUT_TIME` | `600` | PHP limits in seconds |
 | `FP_MAX_WAIT_TIME` | `30s` | How long a request may wait for a free PHP thread before a 503 |
 | `FP_TRUSTED_PROXIES` | `private_ranges` | Proxies whose `X-Forwarded-*` headers are trusted; `X-Forwarded-Proto: https` from them sets `HTTPS=on` for PHP |
+| `FP_CSP` | WordPress-compatible policy (see below) | Full `Content-Security-Policy` value. Leave unset for the default; do not set it to an empty string |
+| `FP_CSP_HEADER` | `Content-Security-Policy` | Set to `Content-Security-Policy-Report-Only` to test a policy without enforcing it |
+| `FP_CSP_ENABLED` | `true` | `false` disables the CSP header entirely |
+| `FP_SECURITY_HEADERS` | `true` | `false` disables `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin` and the removal of `X-Powered-By` |
 | `FP_GLOBAL_OPTIONS` | empty | Extra Caddy global options (e.g. `servers { metrics }` to expose FrankenPHP Prometheus metrics on the loopback admin API `localhost:2019/metrics`) |
 | `FP_FRANKENPHP_OPTIONS` | empty | Extra directives inside the `frankenphp` block (e.g. `num_threads 4`) |
 | `FP_EXTRA_CONFIG` | empty | Extra top-level Caddyfile content (additional sites) |
@@ -44,6 +48,23 @@ All knobs are environment variables read by the Caddyfile at start-up:
 
 WordPress itself is configured through Bedrock's `.env` and environment variables (`WP_ENV`, `WP_HOME`, `DATABASE_URL`, salts).
 Images that have a `.webp` sibling (`photo.jpg.webp` or `photo.webp`) are served to clients that send `Accept: image/webp`.
+
+### Content-Security-Policy
+
+The default policy is:
+
+```
+default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:;
+img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:;
+media-src 'self' data: blob: https:; frame-src 'self' https:; worker-src 'self' blob:;
+object-src 'none'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'self'
+```
+
+It keeps wp-admin, Gutenberg and typical plugins working (they rely on inline and eval scripts and inline styles)
+while blocking plugins/objects, `<base>` hijacking, framing by other origins and any non-HTTPS external resource.
+To tighten it for a specific site, roll out the stricter value with `FP_CSP_HEADER=Content-Security-Policy-Report-Only`
+first, watch the browser console / `report-to` endpoint, then switch the header back. `Strict-Transport-Security` is
+intentionally not set here; add it at the TLS-terminating proxy or via `FP_SERVER_OPTIONS="header Strict-Transport-Security max-age=31536000"`.
 
 ### Running in Kubernetes / hardened environments
 

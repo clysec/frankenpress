@@ -118,6 +118,9 @@ ENV FP_GLOBAL_OPTIONS="" \
     FP_MAX_INPUT_TIME="600" \
     FP_MAX_WAIT_TIME="30s" \
     FP_TRUSTED_PROXIES="private_ranges" \
+    FP_CSP_ENABLED="true" \
+    FP_CSP_HEADER="Content-Security-Policy" \
+    FP_SECURITY_HEADERS="true" \
     FP_AUTO_HTTPS="off"
 
 CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
@@ -227,6 +230,9 @@ ENV FP_GLOBAL_OPTIONS="" \
     FP_MAX_INPUT_TIME="600" \
     FP_MAX_WAIT_TIME="30s" \
     FP_TRUSTED_PROXIES="private_ranges" \
+    FP_CSP_ENABLED="true" \
+    FP_CSP_HEADER="Content-Security-Policy" \
+    FP_SECURITY_HEADERS="true" \
     FP_AUTO_HTTPS="off"
 
 WORKDIR /app

@@ -39,6 +39,26 @@
 
           {$FP_SERVER_OPTIONS}
 
+          # Content-Security-Policy. Defaults are deliberately WordPress-compatible
+          # (wp-admin and most plugins need inline/eval scripts and inline styles) while
+          # still blocking plugins/objects, base tag hijacking, framing by other sites
+          # and non-https external resources. Override the whole policy with FP_CSP,
+          # test a stricter one with FP_CSP_HEADER=Content-Security-Policy-Report-Only,
+          # or turn it off with FP_CSP_ENABLED=false.
+          @csp expression `"{$FP_CSP_ENABLED:true}" == "true"`
+          header @csp {
+            {$FP_CSP_HEADER:Content-Security-Policy} "{$FP_CSP:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; frame-src 'self' https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'self'}"
+          }
+
+          # Companion security headers (FP_SECURITY_HEADERS=false to disable).
+          @security_headers expression `"{$FP_SECURITY_HEADERS:true}" == "true"`
+          header @security_headers {
+            X-Content-Type-Options nosniff
+            X-Frame-Options SAMEORIGIN
+            Referrer-Policy strict-origin-when-cross-origin
+            -X-Powered-By
+          }
+
           @healthcheck {
             path /unit-ping /fpm-ping
           }
