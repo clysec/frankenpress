@@ -47,7 +47,7 @@
           # or turn it off with FP_CSP_ENABLED=false.
           @csp expression `"{$FP_CSP_ENABLED:true}" == "true"`
           header @csp {
-            {$FP_CSP_HEADER:Content-Security-Policy} "{$FP_CSP:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; frame-src 'self' https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'self'}"
+            {$FP_CSP_HEADER:Content-Security-Policy} "{$FP_CSP:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; frame-src 'self' https: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'self'}"
           }
 
           # Companion security headers (FP_SECURITY_HEADERS=false to disable).
