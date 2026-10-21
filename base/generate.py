@@ -97,12 +97,22 @@ def patch_trixie(data, path):
     )
     data = replace_once(data, '--disable-zend-signals', CONFIGURE_FLAGS, path)
 
-    # imagick and apcu are built with pecl right after PHP itself, while the
-    # toolchain and -dev packages are still installed.
+    pecl_install = ' \\\n\t'.join([
+        f'for package in imagick-{IMAGICK_VERSION} apcu-{APCU_VERSION}; do',
+        'curl -fSL --retry 5 --retry-delay 2 --retry-all-errors '
+        '-o /tmp/"$package".tgz "https://pecl.php.net/get/$package.tgz";',
+        'printf \'\\n\' | pecl install /tmp/"$package".tgz;',
+        'extension="${package%%-*}";',
+
+        'php -n -d "extension=$(php-config --extension-dir)/$extension.so" '
+        '-r \'exit(extension_loaded($argv[1]) ? 0 : 1);\' -- "$extension";',
+        'rm /tmp/"$package".tgz;',
+        'done;',
+    ])
     data = replace_once(
         data,
         'make clean;',
-        f"make clean; printf '\\n' | pecl install imagick-{IMAGICK_VERSION} apcu-{APCU_VERSION} &&",
+        f'make clean; \\\n\t{pecl_install}',
         path,
     )
 
