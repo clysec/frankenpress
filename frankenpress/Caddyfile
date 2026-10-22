@@ -106,12 +106,6 @@
               path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
               header Accept *image/webp*
             }
-            handle @images {
-              root * /app/web
-              header +Vary Accept
-              try_files {path}.webp {re.images.1}.webp {path}
-              file_server
-            }
 
             # These trees are static-only, including requests for directory indexes.
             @static_only path_regexp static_only (?i)/(?:app/(?:uploads|cache)|wp-content/(?:uploads|cache)|uploads|cache|(?:wp/)?wp-includes)(/|$)

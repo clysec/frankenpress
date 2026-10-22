@@ -286,13 +286,13 @@ func (ini *WpInitializer) Run() {
 
 	// Handle WebP Conversions
 	fmt.Println("Converting Uploads to WebP")
-	if ini.ConvertUploadsToWebp {
-		if ini.ConvertMissingOnly {
-			ini.HandleErrors(ini.RunWpCli([]string{"cloudyne-webp", "convert"}))
-		} else {
-			ini.HandleErrors(ini.RunWpCli([]string{"cloudyne-webp", "convert", "--force-all=true"}))
-		}
-	}
+	// if ini.ConvertUploadsToWebp {
+	// 	if ini.ConvertMissingOnly {
+	// 		ini.HandleErrors(ini.RunWpCli([]string{"cloudyne-webp", "convert"}))
+	// 	} else {
+	// 		ini.HandleErrors(ini.RunWpCli([]string{"cloudyne-webp", "convert", "--force-all=true"}))
+	// 	}
+	// }
 
 	fmt.Println("Updating Salts")
 	ini.HandleErrors(ini.UpdateSalts())
