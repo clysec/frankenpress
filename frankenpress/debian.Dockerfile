@@ -36,7 +36,7 @@ ENV WP_CLI_CACHE_DIR="/tmp/wpcli/cache"             \
 RUN set -eux; \
     cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
     # The extensions are compiled into the php-zts base (see base/generate.py); fail fast if not.
-    for ext in mysqli pdo_mysql gd zip intl imagick apcu; do \
+    for ext in mysqli pdo_mysql gd zip intl imagick apcu redis; do \
         php -m | grep -qix "$ext" || { echo "PHP extension '$ext' is missing from the base image" >&2; exit 1; }; \
     done; \
     # Create the runtime user before installing packages so nothing else can take uid/gid 101.

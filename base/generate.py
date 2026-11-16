@@ -29,6 +29,7 @@ CONFIGURE_FLAGS = (
 
 IMAGICK_VERSION = '3.8.1'
 APCU_VERSION = '5.1.28'
+REDIS_VERSION = '6.3.0'
 
 
 def replace_once(data, old, new, path):
@@ -98,10 +99,12 @@ def patch_trixie(data, path):
     data = replace_once(data, '--disable-zend-signals', CONFIGURE_FLAGS, path)
 
     pecl_install = ' \\\n\t'.join([
-        f'for package in imagick-{IMAGICK_VERSION} apcu-{APCU_VERSION}; do',
+        f'for package in imagick-{IMAGICK_VERSION} apcu-{APCU_VERSION} redis-{REDIS_VERSION}; do',
         'curl -fSL --retry 5 --retry-delay 2 --retry-all-errors '
         '-o /tmp/"$package".tgz "https://pecl.php.net/get/$package.tgz";',
-        'printf \'\\n\' | pecl install /tmp/"$package".tgz;',
+        # redis asks yes/no build questions (igbinary, msgpack, lzf, zstd, lz4); empty answers keep the defaults.
+        # printf, not yes: yes dies of SIGPIPE, which fails the step under pipefail.
+        'printf \'\\n\\n\\n\\n\\n\\n\\n\\n\' | pecl install /tmp/"$package".tgz;',
         'extension="${package%%-*}";',
 
         'php -n -d "extension=$(php-config --extension-dir)/$extension.so" '
@@ -129,7 +132,7 @@ def patch_trixie(data, path):
     data = replace_once(
         data,
         'RUN docker-php-ext-enable sodium',
-        'RUN docker-php-ext-enable sodium imagick apcu',
+        'RUN docker-php-ext-enable sodium imagick apcu redis',
         path,
     )
 
