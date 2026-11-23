@@ -33,6 +33,8 @@ with tempfile.TemporaryDirectory(prefix='frankenpress-security-') as tmp:
         'app/debug.log': 'secret', '.well-known/acme-challenge/token': 'challenge',
         '.well-known/.env': 'secret', '.well-known/nested/.git/config': 'secret',
         'app/uploads/photo.jpg': 'original', 'app/uploads/photo.jpg.webp': 'webp',
+        'app/uploads/plain.jpg': 'no-webp-next-to-it',
+        'app/uploads/core.png': 'original', 'app/uploads/core.webp': 'webp-as-cloudyne-core-names-it',
     }
     trees = ['app/uploads', 'app/cache', 'wp/wp-includes', 'wp-includes',
              'wp-content/uploads', 'wp-content/cache', 'uploads', 'cache']
@@ -97,9 +99,39 @@ with tempfile.TemporaryDirectory(prefix='frankenpress-security-') as tmp:
             request('/wp/wp-admin/', 200, 'admin')
             request('/app/plugins/example/endpoint.php', 200, 'plugin-endpoint')
             request('/app/uploads/photo.jpg', 200, 'webp')
+            request('/app/uploads/plain.jpg', 200, 'no-webp-next-to-it')
+            request('/app/uploads/core.png', 200, 'webp-as-cloudyne-core-names-it')
             request('/.well-known/acme-challenge/token', 200, 'challenge')
+
+            # Browser caching: a year for versioned static files, a week for the rest, nothing for PHP or missing files.
+            def cache_control(path):
+                global count
+                count += 1
+                headers = docker('exec', cid, 'curl', '-sS', '-o', '/dev/null', '-D', '-', 'http://localhost:8080' + path)
+                return next((line.split(':', 1)[1].strip() for line in headers.splitlines() if line.lower().startswith('cache-control:')), None)
+
+            assert cache_control('/app/uploads/asset.css?ver=1') == 'public, max-age=31536000, immutable'
+            assert cache_control('/app/uploads/asset.css') == 'public, max-age=604800'
+            assert cache_control('/app/uploads/missing.css?ver=1') is None
+            assert cache_control('/app/plugins/example/endpoint.php?ver=1') is None
+            assert cache_control('/') is None
         finally:
             docker('rm', '-f', cid)
+    # FP_WEBP_ENABLED=false (sites behind Cloudflare): always the original.
+    cid = docker('run', '-d', '--rm', '--network', 'none', '-e', 'FP_WEBP_ENABLED=false',
+                 '-v', f'{ROOT / "Caddyfile"}:/etc/frankenphp/Caddyfile:ro', '-v', f'{web}:/app/web:ro', args.image)
+    try:
+        for attempt in range(30):
+            try:
+                docker('exec', cid, 'curl', '-fsS', 'http://localhost:8080/unit-ping')
+                break
+            except subprocess.CalledProcessError:
+                time.sleep(0.2)
+        got = docker('exec', cid, 'curl', '-sS', '-H', 'Accept: image/webp', 'http://localhost:8080/app/uploads/photo.jpg')
+        assert got == 'original', got
+        count += 1
+    finally:
+        docker('rm', '-f', cid)
     print(f'{count} HTTP checks passed')
 
 cid = docker('run', '-d', '--rm', '--network', 'bridge' if args.composer_update else 'none',

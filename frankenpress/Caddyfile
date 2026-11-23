@@ -59,6 +59,27 @@
             -X-Powered-By
           }
 
+          # Browser caching of static files, as a default: a response that sets its own
+          # Cache-Control keeps it, and only files that exist get one. A URL with ?ver= changes when
+          # the file does, so it may be kept for a year; other static files a week.
+          # Override with FP_CACHE_VERSIONED / FP_CACHE_STATIC (e.g. no-cache).
+          @static_versioned {
+            path_regexp static_versioned (?i)\.(css|js|mjs|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|pdf)$
+            query ver=*
+            file {
+              root /app/web
+            }
+          }
+          header @static_versioned ?Cache-Control "{$FP_CACHE_VERSIONED:public, max-age=31536000, immutable}"
+          @static_plain {
+            path_regexp static_plain (?i)\.(css|js|mjs|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|pdf)$
+            not query ver=*
+            file {
+              root /app/web
+            }
+          }
+          header @static_plain ?Cache-Control "{$FP_CACHE_STATIC:public, max-age=604800}"
+
           # Keep denials ahead of rewrites, WebP negotiation and PHP dispatch.
           route {
             @xmlrpc_disabled {
@@ -101,11 +122,24 @@
             }
             redir @wplogin /wp/wp-login.php permanent
 
-            # Serve a pre-generated .webp next to the original, only to clients that accept it.
-            @images {
-              path_regexp images ^(.+)\.(jpg|jpeg|png|gif)$
-              header Accept *image/webp*
+            # Serve a pre-generated .webp (photo.jpg.webp or photo.webp) in place of the original,
+            # only to clients that accept it. FP_WEBP_ENABLED=false turns it off, for sites behind
+            # a CDN that caches one answer per URL whatever the client accepts (Cloudflare).
+            @webp_images {
+              path_regexp webp_images (?i)^(.+)\.(jpe?g|png|gif)$
+              expression `"{$FP_WEBP_ENABLED:true}" == "true"`
             }
+            header @webp_images +Vary Accept
+            @webp {
+              path_regexp webp (?i)^(.+)\.(jpe?g|png|gif)$
+              header Accept *image/webp*
+              expression `"{$FP_WEBP_ENABLED:true}" == "true"`
+              file {
+                root /app/web
+                try_files {path}.webp {dir}{file.base}.webp
+              }
+            }
+            rewrite @webp {file_match.relative}
 
             # These trees are static-only, including requests for directory indexes.
             @static_only path_regexp static_only (?i)/(?:app/(?:uploads|cache)|wp-content/(?:uploads|cache)|uploads|cache|(?:wp/)?wp-includes)(/|$)
